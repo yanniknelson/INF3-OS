@@ -1,0 +1,20 @@
+/home/yannik/Documents/GitHub/INF3-OS/CourseWorks/infos/oot/sched-rr.o: \
+ /home/yannik/Documents/GitHub/INF3-OS/CourseWorks/infos/oot/sched-rr.cpp \
+ /home/yannik/Documents/GitHub/INF3-OS/CourseWorks/infos/include/infos/kernel/sched.h \
+ /home/yannik/Documents/GitHub/INF3-OS/CourseWorks/infos/include/infos/kernel/subsystem.h \
+ /home/yannik/Documents/GitHub/INF3-OS/CourseWorks/infos/include/infos/define.h \
+ /home/yannik/Documents/GitHub/INF3-OS/CourseWorks/infos/include/infos/assert.h \
+ /home/yannik/Documents/GitHub/INF3-OS/CourseWorks/infos/include/infos/kernel/sched-entity.h \
+ /home/yannik/Documents/GitHub/INF3-OS/CourseWorks/infos/include/infos/util/time.h \
+ /home/yannik/Documents/GitHub/INF3-OS/CourseWorks/infos/include/infos/util/ratio.h \
+ /home/yannik/Documents/GitHub/INF3-OS/CourseWorks/infos/include/infos/util/event.h \
+ /home/yannik/Documents/GitHub/INF3-OS/CourseWorks/infos/include/infos/util/wakequeue.h \
+ /home/yannik/Documents/GitHub/INF3-OS/CourseWorks/infos/include/infos/util/list.h \
+ /home/yannik/Documents/GitHub/INF3-OS/CourseWorks/infos/include/infos/util/support.h \
+ /home/yannik/Documents/GitHub/INF3-OS/CourseWorks/infos/include/infos/kernel/log.h \
+ /home/yannik/Documents/GitHub/INF3-OS/CourseWorks/infos/include/infos/util/lock.h \
+ /home/yannik/Documents/GitHub/INF3-OS/CourseWorks/infos/include/arch/x86/irq.h \
+ /home/yannik/Documents/GitHub/INF3-OS/CourseWorks/infos/include/infos/kernel/irq.h \
+ /home/yannik/Documents/GitHub/INF3-OS/CourseWorks/infos/include/infos/kernel/thread.h \
+ /home/yannik/Documents/GitHub/INF3-OS/CourseWorks/infos/include/infos/kernel/thread-context.h \
+ /home/yannik/Documents/GitHub/INF3-OS/CourseWorks/infos/include/arch/x86/context.h
