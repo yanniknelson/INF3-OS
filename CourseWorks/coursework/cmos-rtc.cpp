@@ -11,11 +11,12 @@
 using namespace infos::drivers;
 using namespace infos::drivers::timer;
 
-class CMOSRTC : public RTC {
+class CMOSRTC : public RTC
+{
 public:
 	static const DeviceClass CMOSRTCDeviceClass;
 
-	const DeviceClass& device_class() const override
+	const DeviceClass &device_class() const override
 	{
 		return CMOSRTCDeviceClass;
 	}
@@ -25,9 +26,15 @@ public:
 	 * @param tp Populates the tp structure with the current data & time, as
 	 * given by the CMOS RTC device.
 	 */
-	void read_timepoint(RTCTimePoint& tp) override
+	void read_timepoint(RTCTimePoint &tp) override
 	{
 		// FILL IN THIS METHOD - WRITE HELPER METHODS IF NECESSARY
+	}
+
+private:
+	unsigned short BCDtoShort(uint8_t BCD)
+	{
+		return (BCD & 0x0F) + ((BCD >> 4) & 0x0F) * 10;
 	}
 };
 
