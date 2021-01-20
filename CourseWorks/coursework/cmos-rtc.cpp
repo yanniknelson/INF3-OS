@@ -153,7 +153,9 @@ public:
 		{
 			tp.seconds = BCDtoShort(tp.seconds);
 			tp.minutes = BCDtoShort(tp.minutes);
-			tp.hours = BCDtoShort(tp.hours);
+			//we or the converted hours with the uncoverted hours to preserve the am/pm indicator for 12/hour time
+			//this is valid as in 12 hour BCD bit 7 will never be set (12 = 00010010) 
+			tp.hours = BCDtoShort(tp.hours) | (tp.hours & 0x80);
 			tp.day_of_month = BCDtoShort(tp.day_of_month);
 			tp.month = BCDtoShort(tp.month);
 			tp.year = BCDtoShort(tp.year);
