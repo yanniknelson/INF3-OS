@@ -24,24 +24,26 @@ public:
 	/**
 	 * Returns the friendly name of the algorithm, for debugging and selection purposes.
 	 */
-	const char* name() const override { return "fifo"; }
+	const char *name() const override { return "fifo"; }
 
 	/**
 	 * Called when a scheduling entity becomes eligible for running.
 	 * @param entity
 	 */
-	void add_to_runqueue(SchedulingEntity& entity) override
+	void add_to_runqueue(SchedulingEntity &entity) override
 	{
-		not_implemented();
+		UniqueIRQLock l;
+		runqueue.append(&entity);
 	}
 
 	/**
 	 * Called when a scheduling entity is no longer eligible for running.
 	 * @param entity
 	 */
-	void remove_from_runqueue(SchedulingEntity& entity) override
+	void remove_from_runqueue(SchedulingEntity &entity) override
 	{
-		not_implemented();
+		UniqueIRQLock l;
+		runqueue.remove(&entity);
 	}
 
 	/**
@@ -51,7 +53,7 @@ public:
 	 */
 	SchedulingEntity *pick_next_entity() override
 	{
-		not_implemented();
+		return runqueue.first();
 	}
 
 private:
