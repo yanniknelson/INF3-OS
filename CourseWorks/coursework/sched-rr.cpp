@@ -53,6 +53,10 @@ public:
 	 */
 	SchedulingEntity *pick_next_entity() override
 	{
+		if (runqueue.empty())
+		{
+			return NULL;
+		}
 		SchedulingEntity *next = runqueue.pop();
 		runqueue.append(next);
 		return next;
