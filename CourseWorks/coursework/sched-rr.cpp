@@ -32,6 +32,7 @@ public:
 	 */
 	void add_to_runqueue(SchedulingEntity &entity) override
 	{
+		//ignore interrupts and add the entity to the end of the wait queue
 		UniqueIRQLock l;
 		runqueue.append(&entity);
 	}
@@ -42,6 +43,7 @@ public:
 	 */
 	void remove_from_runqueue(SchedulingEntity &entity) override
 	{
+		//ignore interrupts and remove the entity from the wait queue
 		UniqueIRQLock l;
 		runqueue.remove(&entity);
 	}
@@ -53,12 +55,16 @@ public:
 	 */
 	SchedulingEntity *pick_next_entity() override
 	{
+		//if there is nothing to run, return null to cause idle
 		if (runqueue.empty())
 		{
 			return NULL;
 		}
+		//if the wait queue isn't empty get and remove the first task from the queue
 		SchedulingEntity *next = runqueue.pop();
+		//place that task at the end of the queue
 		runqueue.append(next);
+		//return that task to be run
 		return next;
 	}
 

@@ -32,6 +32,7 @@ public:
 	 */
 	void add_to_runqueue(SchedulingEntity &entity) override
 	{
+		//ignore interrupts and add the entity to the end of the wait queue
 		UniqueIRQLock l;
 		runqueue.append(&entity);
 	}
@@ -42,6 +43,7 @@ public:
 	 */
 	void remove_from_runqueue(SchedulingEntity &entity) override
 	{
+		//ignore interrupts and remove the entity from the wait queue
 		UniqueIRQLock l;
 		runqueue.remove(&entity);
 	}
@@ -53,12 +55,22 @@ public:
 	 */
 	SchedulingEntity *pick_next_entity() override
 	{
+		//if there is nothing to run, return null to cause idle
 		if (runqueue.empty())
 		{
 			return NULL;
 		}
+		//if the wait queue isn't empty get and return the first task without removing it from the queue
 		return runqueue.first();
 	}
+
+	/*	I beleive the 'unresponsiveness' of /usr/sched-test2 using fifo is due two the test being comprised of 3 tasks
+		Task 1, Task 2, and a task that listens for enter being pressed and then tells the other tasks to stop (Task 3). I think
+		the tasks are added to the queue in the order I listed, meaning that fifo will run them (until they stop) in that order.
+		This means Task 1 is run first until it stops, at which point Task 2 will run until it stops and then Task 3 will run.
+		But Task 1 will only stop when Task 3 (which will only run after Task 1 AND Task 2 have both stopped) has run (and seen enter being pressed).
+		i.e Task 1 and 2 need to be told to stop by Task 3 (the listener) but using fifo, Task 1 and 2 need to stop in order for Task 3 to tell them to stop.
+	*/
 
 private:
 	// A list containing the current runqueue.
