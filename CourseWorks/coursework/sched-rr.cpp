@@ -60,8 +60,9 @@ public:
 		{
 			return NULL;
 		}
+		UniqueIRQLock l;
 		//if the wait queue isn't empty get and remove the first task from the queue
-		SchedulingEntity *next = runqueue.pop();
+		SchedulingEntity *next = runqueue.dequeue();
 		//place that task at the end of the queue
 		runqueue.append(next);
 		//return that task to be run

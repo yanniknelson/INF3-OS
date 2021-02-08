@@ -64,7 +64,8 @@ public:
 		return runqueue.first();
 	}
 
-	/*	I beleive the 'unresponsiveness' of /usr/sched-test2 using fifo is due two the test being comprised of 3 tasks
+	/*	
+		I beleive the 'unresponsiveness' of /usr/sched-test2 using fifo is due two the test being comprised of 3 tasks
 		Task 1, Task 2, and a task that listens for enter being pressed and then tells the other tasks to stop (Task 3). I think
 		the tasks are added to the queue in the order I listed, meaning that fifo will run them (until they stop) in that order.
 		This means Task 1 is run first until it stops, at which point Task 2 will run until it stops and then Task 3 will run.
