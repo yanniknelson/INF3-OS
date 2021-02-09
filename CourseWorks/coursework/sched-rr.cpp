@@ -60,6 +60,7 @@ public:
 		{
 			return NULL;
 		}
+		//ignore interrupts as we will be making changes to the runqueue
 		UniqueIRQLock l;
 		//if the wait queue isn't empty get and remove the first task from the queue
 		SchedulingEntity *next = runqueue.dequeue();
@@ -67,6 +68,10 @@ public:
 		runqueue.append(next);
 		//return that task to be run
 		return next;
+
+		//note that there is no need to check for the runqueue having one element and only returning runqueue.first, 
+		//doing so would require a check every time slice which would only pays off if there is one element in the queue making it take more time overall.
+		//whereas this method only performs an unnesscary operation if there is only one element in the runqueue (remove and then place back in).
 	}
 
 private:
