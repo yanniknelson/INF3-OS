@@ -152,12 +152,14 @@ private:
 		//Make sure the we aren't trying to split the smallest size
 		assert(source_order > 0);
 
+		PageDescriptor *page_to_split = *block_pointer;
+
 		//remove the block to be split from the free list
-		remove_block(*block_pointer, source_order);
+		remove_block(page_to_split, source_order);
 		//add the left half of the block to be split to the free list
-		insert_block(*block_pointer, source_order - 1);
+		insert_block(page_to_split, source_order - 1);
 		//add the right half of the block to be split to the free list
-		insert_block(*block_pointer + pages_per_block(source_order - 1), source_order - 1);
+		insert_block(page_to_split + pages_per_block(source_order - 1), source_order - 1);
 
 		//return a pointer to the left buddy
 		return *block_pointer;
@@ -180,6 +182,8 @@ private:
 
 		// TODO: Implement this function
 
+		PageDescriptor *merging_block = *block_pointer;
+
 		//get the buddy of the block to be merged
 		PageDescriptor *bud = buddy_of(*block_pointer, source_order);
 
@@ -189,7 +193,7 @@ private:
 
 		//inserts the merged buddies into the free list (order will increase by one) with the smaller (left most) block address (the valid address)
 		//we can't assume the passed in block would be the start of the merged buddy it could be the second half and therefore not have the valid block address
-		return insert_block((*block_pointer < bud) ? *block_pointer : bud, source_order + 1);
+		return insert_block((merging_block < bud) ? merging_block : bud, source_order + 1);
 	}
 
 public:
@@ -214,7 +218,7 @@ public:
 	PageDescriptor *alloc_pages(int order) override
 	{
 		//ensure the desired order of the request is valid, if not return NULL
-		if (order > MAX_ORDER)
+		if (order >= MAX_ORDER)
 		{
 			return NULL;
 		}
@@ -228,7 +232,7 @@ public:
 			//move to the next order
 			order_difference++;
 			//if the next order is invald return NULL
-			if (order + order_difference > MAX_ORDER)
+			if (order + order_difference >= MAX_ORDER)
 			{
 				return NULL;
 			}
@@ -236,6 +240,8 @@ public:
 		//if the while loop exits then a block has been found at an equal or larger order
 		//get a reference to that slot
 		PageDescriptor **pg = &_free_areas[order + order_difference];
+
+		PageDescriptor *allocated_page = *pg;
 
 		//while the difference between the desired order and actual order of the block is greater than 0
 		//split the block, decriment the difference and get a reference to the left most slot of the new order
@@ -245,10 +251,11 @@ public:
 			order_difference--;
 			pg = &_free_areas[order + order_difference];
 		}
+
 		//once this while loop has exited the pg should point to a free slot of the desired size
 		//we must then remove the slot from the free list and return a pointer to its first page descriptor
 		remove_block(*pg, order);
-		return *pg;
+		return allocated_page;
 	}
 
 	/**
@@ -269,16 +276,16 @@ public:
 		//find the returned block's buddy
 		PageDescriptor *bud = buddy_of(pgd, order);
 		//while the current order of the block is less than the max
-		while (order < MAX_ORDER)
+		while (order < MAX_ORDER - 1)
 		{
-			//run through the the linked list of free blocks in the correct order until either the end is reached or the block is found
+			//run through the the linked list of free blocks in the correct order until either the end is reached or the buddy is found
 			PageDescriptor **slot = &_free_areas[order];
 			while (*slot && bud != *slot)
 			{
 				slot = &(*slot)->next_free;
 			}
 			//If the slot pointer is NULL then the search didn't find the buddy free and so the job is done so return out of the function
-			if (slot == NULL)
+			if (*slot == NULL)
 			{
 				return;
 			}
@@ -300,7 +307,7 @@ public:
 		PageDescriptor *block;
 		PageDescriptor **slot;
 		int order;
-		for (order = MAX_ORDER; order > 0; order--)
+		for (order = MAX_ORDER - 1; order > 0; order--)
 		{
 			//run through the the linked list of free blocks in the correct order until either the end is reached or the block containing the desired pae is found
 			slot = &_free_areas[order];
@@ -334,8 +341,6 @@ public:
 	 */
 	bool init(PageDescriptor *page_descriptors, uint64_t nr_page_descriptors) override
 	{
-		mm_log.messagef(LogLevel::DEBUG, "Buddy Allocator Initialising pd=%p, nr=0x%lx", page_descriptors, nr_page_descriptors);
-
 		// TODO: Initialise the free area linked list for the maximum order
 		// to initialise the allocation algorithm.
 
@@ -344,12 +349,13 @@ public:
 		int offset = 0;
 		while (offset < nr_page_descriptors)
 		{
-			insert_block(page_descriptors + offset, MAX_ORDER);
-			page_descriptors += pages_per_block(MAX_ORDER);
+			assert(is_correct_alignment_for_order(page_descriptors + offset, MAX_ORDER - 1));
+			insert_block(page_descriptors + offset, MAX_ORDER - 1);
+			offset += pages_per_block(MAX_ORDER - 1);
 			count++;
 		}
 		//return true if the correct number of buddies have been created otherwise return false
-		return (count == nr_page_descriptors / pages_per_block(MAX_ORDER));
+		return (count == nr_page_descriptors / pages_per_block(MAX_ORDER - 1));
 	}
 
 	/**
