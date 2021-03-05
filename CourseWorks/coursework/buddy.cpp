@@ -152,6 +152,7 @@ private:
 		//Make sure the we aren't trying to split the smallest size
 		assert(source_order > 0);
 
+		//save the pointer to the block being merged so as to not loose the reference when removing from the free areas
 		PageDescriptor *page_to_split = *block_pointer;
 
 		//remove the block to be split from the free list
@@ -182,6 +183,7 @@ private:
 
 		// TODO: Implement this function
 
+		//save the pointer to the block being merged so as to not loose the reference when removing from the free areas
 		PageDescriptor *merging_block = *block_pointer;
 
 		//get the buddy of the block to be merged
@@ -241,6 +243,7 @@ public:
 		//get a reference to that slot
 		PageDescriptor **pg = &_free_areas[order + order_difference];
 
+		//save the pointer to the block being merged so as to not loose the reference when removing from the free areas
 		PageDescriptor *allocated_page = *pg;
 
 		//while the difference between the desired order and actual order of the block is greater than 0
@@ -304,29 +307,35 @@ public:
 	 */
 	bool reserve_page(PageDescriptor *pgd)
 	{
-		PageDescriptor *block;
 		PageDescriptor **slot;
 		int order;
+		//search from the highest order to order 1 bocks from any block containing the desired page
 		for (order = MAX_ORDER - 1; order > 0; order--)
 		{
 			//run through the the linked list of free blocks in the correct order until either the end is reached or the block containing the desired pae is found
 			slot = &_free_areas[order];
 			while (*slot)
 			{
-				//if the block being looked at starts at or before the desired page and ends after it, then it contains the desired page and stop scrolling
+				//if the block being looked at starts at or before the desired page and ends after it, then it contains the desired page
+				//split the block and move on to the next order to repeat
 				if (*slot <= pgd && (*slot + pages_per_block(order)) > pgd)
 				{
-					block = split_block(slot, order);
+					split_block(slot, order);
 					break;
 				}
+				//if not move on to the next slot in the order
 				slot = &(*slot)->next_free;
 			}
 		}
+		//at this point either the desired page is in the order 0 list or not available
+		//run throught the order 0 list until either the page is found or the slot pointer is NULL
 		slot = &_free_areas[order];
 		while (*slot && pgd != *slot)
 		{
 			slot = &(*slot)->next_free;
 		}
+		//if the slot pointer isn't null then remove the page from the free list and return true
+		//otherwise return false as the page wasn't available
 		if (*slot)
 		{
 			remove_block(pgd, 0);
