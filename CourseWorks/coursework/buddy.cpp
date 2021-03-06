@@ -152,7 +152,7 @@ private:
 		//Make sure the we aren't trying to split the smallest size
 		assert(source_order > 0);
 
-		//save the pointer to the block being merged so as to not loose the reference when removing from the free areas
+		//save the pointer to the block being split so as to not loose the reference when removing from the free areas
 		PageDescriptor *page_to_split = *block_pointer;
 
 		//remove the block to be split from the free list
@@ -243,9 +243,7 @@ public:
 		//get a reference to that slot
 		PageDescriptor **pg = &_free_areas[order + order_difference];
 
-		//save the pointer to the block being merged so as to not loose the reference when removing from the free areas
-		PageDescriptor *allocated_page = *pg;
-
+		
 		//while the difference between the desired order and actual order of the block is greater than 0
 		//split the block, decriment the difference and get a reference to the left most slot of the new order
 		while (order_difference > 0)
@@ -254,6 +252,9 @@ public:
 			order_difference--;
 			pg = &_free_areas[order + order_difference];
 		}
+
+		//save the pointer to the block being merged so as to not loose the reference when removing from the free areas
+		PageDescriptor *allocated_page = *pg;
 
 		//once this while loop has exited the pg should point to a free slot of the desired size
 		//we must then remove the slot from the free list and return a pointer to its first page descriptor
@@ -356,7 +357,8 @@ public:
 		//starting at the first page descriptor insert a max_order block at every possible interval
 		int count = 0;
 		int offset = 0;
-		while (offset < nr_page_descriptors)
+		//while we can fit the next block in memory
+		while (offset + pages_per_block(MAX_ORDER - 1) <= nr_page_descriptors)
 		{
 			assert(is_correct_alignment_for_order(page_descriptors + offset, MAX_ORDER - 1));
 			insert_block(page_descriptors + offset, MAX_ORDER - 1);
