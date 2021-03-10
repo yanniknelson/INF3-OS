@@ -243,7 +243,6 @@ public:
 		//get a reference to that slot
 		PageDescriptor **pg = &_free_areas[order + order_difference];
 
-		
 		//while the difference between the desired order and actual order of the block is greater than 0
 		//split the block, decriment the difference and get a reference to the left most slot of the new order
 		while (order_difference > 0)
@@ -354,19 +353,38 @@ public:
 		// TODO: Initialise the free area linked list for the maximum order
 		// to initialise the allocation algorithm.
 
+		// mm_log.messagef(LogLevel::DEBUG, "The following value will be 1 if the memory will only use the max order, 0 otherwise: %d", nr_page_descriptors % (MAX_ORDER - 1) == 0);
+
 		//starting at the first page descriptor insert a max_order block at every possible interval
 		int count = 0;
 		int offset = 0;
-		//while we can fit the next block in memory
-		while (offset + pages_per_block(MAX_ORDER - 1) <= nr_page_descriptors)
+
+		//starting at the max order divide memory into as many blocks as possible
+		//then decrement the order and try again until all orders have been filled
+		int curr_order = MAX_ORDER - 1;
+		while (curr_order >= 0)
 		{
-			assert(is_correct_alignment_for_order(page_descriptors + offset, MAX_ORDER - 1));
-			insert_block(page_descriptors + offset, MAX_ORDER - 1);
-			offset += pages_per_block(MAX_ORDER - 1);
-			count++;
+			//while we can fit the next block of the current order in memory add it
+			while (offset + pages_per_block(curr_order) <= nr_page_descriptors)
+			{
+				assert(is_correct_alignment_for_order(page_descriptors + offset, curr_order));
+				insert_block(page_descriptors + offset, curr_order);
+				offset += pages_per_block(curr_order);
+				count++;
+			}
+			//once we can't fit any more block of the current order in memroy, if all the blocks have been filled stop
+			//otherwise decrease the order and go again
+			if (offset == nr_page_descriptors)
+			{
+				break;
+			}
+			curr_order -= 1;
 		}
-		//return true if the correct number of buddies have been created otherwise return false
-		return (count == nr_page_descriptors / pages_per_block(MAX_ORDER - 1));
+
+		// mm_log.messagef(LogLevel::DEBUG, "Lowest order allocatable is %d", curr_order);
+
+		//return true if all of the memory has been allocated
+		return (offset == nr_page_descriptors);
 	}
 
 	/**
