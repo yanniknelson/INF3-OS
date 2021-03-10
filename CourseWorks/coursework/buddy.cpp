@@ -273,6 +273,28 @@ public:
 		// illegal to free page 1 in order-1.
 		assert(is_correct_alignment_for_order(pgd, order));
 
+		//ensure the area being returned isn't already in the free list
+		PageDescriptor **check_slot;
+		int ord;
+		for (ord = MAX_ORDER - 1; ord >= 0; ord--)
+		{
+			check_slot = &_free_areas[ord];
+			//while the next block exists and could interset with the block being returned
+			while (*check_slot && (pgd + pages_per_block(order) - 1) > *check_slot)
+			{
+				//if the block being looked at starts at or before the first or last page of the returned block and ends after the first or last respectively, then it overlaps
+				//in other words, if the block being looked at contains either the first or the last page of the block being returned
+				//so assert false and crash
+				if ((*check_slot <= pgd && (*check_slot + pages_per_block(ord)) > pgd) || (*check_slot <= (pgd + pages_per_block(order) - 1) && (*check_slot + pages_per_block(ord)) > (pgd + pages_per_block(order) - 1)))
+				{
+					assert(false);
+				}
+				//if not move on to the next slot in the order
+				check_slot = &(*check_slot)->next_free;
+			}
+		}
+		//Search is complete and the block isn't already free, continue to free the block
+
 		//add the block back into the free list
 		insert_block(pgd, order);
 
@@ -312,9 +334,9 @@ public:
 		//search from the highest order to order 1 bocks from any block containing the desired page
 		for (order = MAX_ORDER - 1; order > 0; order--)
 		{
-			//run through the the linked list of free blocks in the correct order until either the end is reached or the block containing the desired pae is found
+			//run through the the linked list of free blocks in the correct order until either the end is reached, the blocks are too high in memory to contain the desired page or the block containing the desired page is found
 			slot = &_free_areas[order];
-			while (*slot)
+			while (*slot && pgd >= *slot)
 			{
 				//if the block being looked at starts at or before the desired page and ends after it, then it contains the desired page
 				//split the block and move on to the next order to repeat
@@ -353,8 +375,6 @@ public:
 		// TODO: Initialise the free area linked list for the maximum order
 		// to initialise the allocation algorithm.
 
-		// mm_log.messagef(LogLevel::DEBUG, "The following value will be 1 if the memory will only use the max order, 0 otherwise: %d", nr_page_descriptors % (MAX_ORDER - 1) == 0);
-
 		//starting at the first page descriptor insert a max_order block at every possible interval
 		int count = 0;
 		int offset = 0;
@@ -380,8 +400,6 @@ public:
 			}
 			curr_order -= 1;
 		}
-
-		// mm_log.messagef(LogLevel::DEBUG, "Lowest order allocatable is %d", curr_order);
 
 		//return true if all of the memory has been allocated
 		return (offset == nr_page_descriptors);
