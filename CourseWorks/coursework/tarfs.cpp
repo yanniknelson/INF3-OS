@@ -35,17 +35,18 @@ static inline unsigned int octal2ui(const char *data)
 
 	// Starting at i = 1, with a factor of one.
 	int i = 1, factor = 1;
-	while (i < len) {
+	while (i < len)
+	{
 		// Extract the current character we're working on (backwards from the end).
 		char ch = data[len - i];
 
 		// Add the value of the character, multipled by the factor, to
 		// the working value.
 		value += factor * (ch - '0');
-		
+
 		// Increment the factor by multiplying it by eight.
 		factor *= 8;
-		
+
 		// Increment the current character position.
 		i++;
 	}
@@ -58,9 +59,28 @@ static inline unsigned int octal2ui(const char *data)
 // TAR files.  A header block occurs before every file, this
 // this structure must EXACTLY match the layout as described
 // in the TAR file format description.
-namespace tarfs {
-	struct posix_header {
+namespace tarfs
+{
+	struct posix_header
+	{
 		// TO BE FILLED IN
+		char name[100];		/*   0 */
+		char mode[8];		/* 100 */
+		char uid[8];		/* 108 */
+		char gid[8];		/* 116 */
+		char size[12];		/* 124 */
+		char mtime[12];		/* 136 */
+		char chksum[8];		/* 148 */
+		char typeflag;		/* 156 */
+		char linkname[100]; /* 157 */
+		char magic[6];		/* 257 */
+		char version[2];	/* 263 */
+		char uname[32];		/* 265 */
+		char gname[32];		/* 297 */
+		char devmajor[8];	/* 329 */
+		char devminor[8];	/* 337 */
+		char prefix[155];	/* 345 */
+							/* 500 */
 	} __packed;
 }
 
@@ -71,16 +91,17 @@ namespace tarfs {
  * @param off The offset within the file.
  * @return Returns the number of bytes read into the buffer.
  */
-int TarFSFile::pread(void* buffer, size_t size, off_t off)
+int TarFSFile::pread(void *buffer, size_t size, off_t off)
 {
-	if (off >= this->size()) return 0;
+	if (off >= this->size())
+		return 0;
 
 	// TO BE FILLED IN
-	
+
 	// buffer is a pointer to the buffer that should receive the data.
 	// size is the amount of data to read from the file.
 	// off is the zero-based offset within the file to start reading from.
-	
+
 	return 0;
 }
 
@@ -89,13 +110,13 @@ int TarFSFile::pread(void* buffer, size_t size, off_t off)
  * representation.
  * @return Returns the root TarFSNode that corresponds to the TAR file structure.
  */
-TarFSNode* TarFS::build_tree()
+TarFSNode *TarFS::build_tree()
 {
 	// Create the root node.
 	TarFSNode *root = new TarFSNode(NULL, "", *this);
 
 	// TO BE FILLED IN
-	
+
 	// You must read the TAR file, and build a tree of TarFSNodes that represents each file present in the archive.
 
 	return root;
@@ -119,7 +140,8 @@ unsigned int TarFSFile::size() const
 PFSNode *TarFS::mount()
 {
 	// If the root node has not been generated, then build it.
-	if (_root_node == NULL) {
+	if (_root_node == NULL)
+	{
 		_root_node = build_tree();
 	}
 
@@ -130,18 +152,18 @@ PFSNode *TarFS::mount()
 /**
  * Constructs a TarFS File object, given the owning file system and the block
  */
-TarFSFile::TarFSFile(TarFS& owner, unsigned int file_header_block)
-: _hdr(NULL),
-_owner(owner),
-_file_start_block(file_header_block),
-_cur_pos(0)
+TarFSFile::TarFSFile(TarFS &owner, unsigned int file_header_block)
+	: _hdr(NULL),
+	  _owner(owner),
+	  _file_start_block(file_header_block),
+	  _cur_pos(0)
 {
 	// Allocate storage for the header.
-	_hdr = (struct posix_header *) new char[_owner.block_device().block_size()];
-	
+	_hdr = (struct posix_header *)new char[_owner.block_device().block_size()];
+
 	// Read the header block into the header structure.
 	_owner.block_device().read_blocks(_hdr, _file_start_block, 1);
-	
+
 	// Increment the starting block for file data.
 	_file_start_block++;
 }
@@ -167,7 +189,7 @@ void TarFSFile::close()
  * @param size The size of the buffer, and hence the number of bytes to read.
  * @return Returns the number of bytes read into the buffer.
  */
-int TarFSFile::read(void* buffer, size_t size)
+int TarFSFile::read(void *buffer, size_t size)
 {
 	// Read can be seen as a special case of pread, that uses an internal
 	// current position indicator, so just delegate actual processing to
@@ -198,17 +220,21 @@ void TarFSFile::seek(off_t offset, SeekType type)
 	// If this is an absolute seek, then set the current file position
 	// to the given offset (subject to the file size).  There should
 	// probably be a way to return an error if the offset was out of bounds.
-	if (type == File::SeekAbsolute) {
+	if (type == File::SeekAbsolute)
+	{
 		_cur_pos = offset;
-	} else if (type == File::SeekRelative) {
+	}
+	else if (type == File::SeekRelative)
+	{
 		_cur_pos += offset;
 	}
-	if (_cur_pos >= size()) {
+	if (_cur_pos >= size())
+	{
 		_cur_pos = size() - 1;
 	}
 }
 
-TarFSNode::TarFSNode(TarFSNode *parent, const String& name, TarFS& owner) : PFSNode(parent, owner), _name(name), _size(0), _has_block_offset(false), _block_offset(0)
+TarFSNode::TarFSNode(TarFSNode *parent, const String &name, TarFS &owner) : PFSNode(parent, owner), _name(name), _size(0), _has_block_offset(false), _block_offset(0)
 {
 }
 
@@ -220,22 +246,23 @@ TarFSNode::~TarFSNode()
  * Opens this node for file operations.
  * @return 
  */
-File* TarFSNode::open()
+File *TarFSNode::open()
 {
 	// This is only a file if it has been associated with a block offset.
-	if (!_has_block_offset) {
+	if (!_has_block_offset)
+	{
 		return NULL;
 	}
 
 	// Create a new file object, with a header from this node's block offset.
-	return new TarFSFile((TarFS&) owner(), _block_offset);
+	return new TarFSFile((TarFS &)owner(), _block_offset);
 }
 
 /**
  * Opens this node for directory operations.
  * @return 
  */
-Directory* TarFSNode::opendir()
+Directory *TarFSNode::opendir()
 {
 	return new TarFSDirectory(*this);
 }
@@ -245,13 +272,14 @@ Directory* TarFSNode::opendir()
  * @param name
  * @return 
  */
-PFSNode* TarFSNode::get_child(const String& name)
+PFSNode *TarFSNode::get_child(const String &name)
 {
 	TarFSNode *child;
 
 	// Try to find the given child node in the children map, and return
 	// NULL if it wasn't found.
-	if (!_children.try_get_value(name.get_hash(), child)) {
+	if (!_children.try_get_value(name.get_hash(), child))
+	{
 		return NULL;
 	}
 
@@ -264,7 +292,7 @@ PFSNode* TarFSNode::get_child(const String& name)
  * @param name
  * @return 
  */
-PFSNode* TarFSNode::mkdir(const String& name)
+PFSNode *TarFSNode::mkdir(const String &name)
 {
 	// DO NOT IMPLEMENT
 	return NULL;
@@ -287,18 +315,19 @@ void TarFSNode::set_block_offset(unsigned int offset)
  * @param name The name of the child node.
  * @param child The actual child node.
  */
-void TarFSNode::add_child(const String& name, TarFSNode *child)
+void TarFSNode::add_child(const String &name, TarFSNode *child)
 {
 	_children.add(name.get_hash(), child);
 }
 
-TarFSDirectory::TarFSDirectory(TarFSNode& node) : _entries(NULL), _nr_entries(0), _cur_entry(0)
+TarFSDirectory::TarFSDirectory(TarFSNode &node) : _entries(NULL), _nr_entries(0), _cur_entry(0)
 {
 	_nr_entries = node.children().count();
 	_entries = new DirectoryEntry[_nr_entries];
 
 	int i = 0;
-	for (const auto& child : node.children()) {
+	for (const auto &child : node.children())
+	{
 		_entries[i].name = child.value->name();
 		_entries[i++].size = child.value->size();
 	}
@@ -309,25 +338,28 @@ TarFSDirectory::~TarFSDirectory()
 	delete _entries;
 }
 
-bool TarFSDirectory::read_entry(infos::fs::DirectoryEntry& entry)
+bool TarFSDirectory::read_entry(infos::fs::DirectoryEntry &entry)
 {
-	if (_cur_entry < _nr_entries) {
+	if (_cur_entry < _nr_entries)
+	{
 		entry = _entries[_cur_entry++];
 		return true;
-	} else {
+	}
+	else
+	{
 		return false;
 	}
 }
 
 void TarFSDirectory::close()
 {
-
 }
 
-static Filesystem *tarfs_create(VirtualFilesystem& vfs, Device *dev)
+static Filesystem *tarfs_create(VirtualFilesystem &vfs, Device *dev)
 {
-	if (!dev->device_class().is(BlockDevice::BlockDeviceClass)) return NULL;
-	return new TarFS((BlockDevice &) * dev);
+	if (!dev->device_class().is(BlockDevice::BlockDeviceClass))
+		return NULL;
+	return new TarFS((BlockDevice &)*dev);
 }
 
 RegisterFilesystem(tarfs, tarfs_create);
