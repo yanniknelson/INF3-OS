@@ -20,34 +20,40 @@
 #include <infos/util/map.h>
 #include <infos/util/list.h>
 
-namespace tarfs {
+namespace tarfs
+{
 
 	class TarFSNode;
 	class TarFSFile;
 
 	struct posix_header;
 
-	class TarFS : public infos::fs::BlockBasedFilesystem {
+	class TarFS : public infos::fs::BlockBasedFilesystem
+	{
 		friend class TarFSNode;
 		friend class TarFSFile;
 
 	public:
-
-		TarFS(infos::drivers::block::BlockDevice& bdev) : BlockBasedFilesystem(bdev), _root_node(NULL) {
+		TarFS(infos::drivers::block::BlockDevice &bdev) : BlockBasedFilesystem(bdev), _root_node(NULL)
+		{
 		}
 
 		infos::fs::PFSNode *mount() override;
 
-		const infos::util::String name() const {
+		const infos::util::String name() const
+		{
 			return "tarfs";
 		}
 
 	private:
 		TarFSNode *build_tree();
-		
-		static bool is_zero_block(const uint8_t *buffer, size_t size = 512) {
-			for (unsigned int i = 0; i < size; i++) {
-				if (buffer[i] != 0) return false;
+
+		static bool is_zero_block(const uint8_t *buffer, size_t size = 512)
+		{
+			for (unsigned int i = 0; i < size; i++)
+			{
+				if (buffer[i] != 0)
+					return false;
 			}
 
 			return true;
@@ -56,39 +62,41 @@ namespace tarfs {
 		TarFSNode *_root_node;
 	};
 
-	class TarFSFile : public infos::fs::File {
+	class TarFSFile : public infos::fs::File
+	{
 	public:
-
-		TarFSFile(TarFS& owner, unsigned int file_header_block);
+		TarFSFile(TarFS &owner, unsigned int file_header_block);
 		virtual ~TarFSFile();
 
 		void close() override;
 
-		int read(void* buffer, size_t size) override;
-		int pread(void* buffer, size_t size, off_t off) override;
+		int read(void *buffer, size_t size) override;
+		int pread(void *buffer, size_t size, off_t off) override;
 
-		int write(const void* buffer, size_t size) override {
+		int write(const void *buffer, size_t size) override
+		{
 			// DO NOT IMPLEMENT
 			return 0;
 		}
 
 		void seek(off_t offset, SeekType type) override;
-		
+
 		unsigned int size() const;
 
 	private:
 		struct posix_header *_hdr;
 
-		TarFS& _owner;
+		TarFS &_owner;
 		unsigned int _file_start_block, _cur_pos;
 	};
 
-	class TarFSDirectory : public infos::fs::Directory {
+	class TarFSDirectory : public infos::fs::Directory
+	{
 	public:
-		TarFSDirectory(TarFSNode& node);
+		TarFSDirectory(TarFSNode &node);
 		virtual ~TarFSDirectory();
 
-		bool read_entry(infos::fs::DirectoryEntry& entry) override;
+		bool read_entry(infos::fs::DirectoryEntry &entry) override;
 		void close() override;
 
 	private:
@@ -96,37 +104,42 @@ namespace tarfs {
 		unsigned int _nr_entries, _cur_entry;
 	};
 
-	class TarFSNode : public infos::fs::PFSNode {
+	class TarFSNode : public infos::fs::PFSNode
+	{
 	public:
 		typedef infos::util::Map<infos::util::String::hash_type, TarFSNode *> TarFSNodeMap;
 
-		TarFSNode(TarFSNode *parent, const infos::util::String& name, TarFS& owner);
+		TarFSNode(TarFSNode *parent, const infos::util::String &name, TarFS &owner);
 		virtual ~TarFSNode();
 
-		infos::fs::File* open() override;
-		infos::fs::Directory* opendir() override;
+		infos::fs::File *open() override;
+		infos::fs::Directory *opendir() override;
 
-		PFSNode* get_child(const infos::util::String& name) override;
+		PFSNode *get_child(const infos::util::String &name) override;
 
-		PFSNode* mkdir(const infos::util::String& name) override;
+		PFSNode *mkdir(const infos::util::String &name) override;
 
 		void set_block_offset(unsigned int offset);
 
-		void add_child(const infos::util::String& name, TarFSNode *child);
+		void add_child(const infos::util::String &name, TarFSNode *child);
 
-		const TarFSNodeMap& children() const {
+		const TarFSNodeMap &children() const
+		{
 			return _children;
 		}
 
-		const infos::util::String& name() const {
+		const infos::util::String &name() const
+		{
 			return _name;
 		}
 
-		unsigned int size() const {
+		unsigned int size() const
+		{
 			return _size;
 		}
 
-		void size(unsigned int size) {
+		void size(unsigned int size)
+		{
 			_size = size;
 		}
 
@@ -140,4 +153,3 @@ namespace tarfs {
 }
 
 #endif /* TARFS_H */
-
