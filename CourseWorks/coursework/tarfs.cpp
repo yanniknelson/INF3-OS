@@ -95,7 +95,7 @@ namespace tarfs
 int TarFSFile::pread(void *buffer, size_t size, off_t off)
 {
 	fs_log.messagef(LogLevel::DEBUG, "Reading %d Bytes from file of size %d at offset %d", size, this->size(), off);
-	if (off >= this->size())
+	if (off >= this->size() || off + size > _file_start_block + this->size())
 	{
 		fs_log.messagef(LogLevel::DEBUG, "Offset out of range");
 		return 0;
@@ -107,32 +107,15 @@ int TarFSFile::pread(void *buffer, size_t size, off_t off)
 	// size is the amount of data to read from the file.
 	// off is the zero-based offset within the file to start reading from.
 
-	int block_size = _owner.block_device().block_size();
-	int blocks_to_read = ((size) % block_size) ? (size) / block_size + 2 : (size) / block_size + 1;
+	int const block_size = _owner.block_device().block_size();
+	int const blocks_to_read = ((size + 1 + off % block_size) % block_size) ? (size + 1 + off % block_size) / block_size + 1 : (size + 1 + off % block_size) / block_size;
 
-	fs_log.messagef(LogLevel::DEBUG, "Reading %d blocks starting at %d", blocks_to_read, _file_start_block + off);
-	uint8_t *buff = new uint8_t[block_size * blocks_to_read];
+	fs_log.messagef(LogLevel::DEBUG, "Reading %d blocks starting at %d + %d bytes", blocks_to_read, (_file_start_block + (off / block_size)), off % block_size);
+	uint8_t *const buff = new uint8_t[block_size * blocks_to_read];
 	_owner.block_device().read_blocks(buff, _file_start_block + (off / block_size), blocks_to_read);
-	int left_over = off % block_size;
-	memcpy(buffer, buff + left_over, size);
+	memcpy(buffer, buff + off % block_size, size);
 
 	delete buff;
-
-	// char b[256];
-	// snprintf(b, sizeof(b), "Read Sector ");
-	// for (int i = 0; i < size + 5; i++)
-	// {
-	// 	snprintf(b, sizeof(b), "%s%lx ", b, (buff + left_over)[i]);
-	// }
-	// fs_log.messagef(LogLevel::DEBUG, "%s", b);
-
-	// char b2[256];
-	// snprintf(b2, sizeof(b2), "Output      ");
-	// for (int i = 0; i < size; i++)
-	// {
-	// 	snprintf(b2, sizeof(b2), "%s%lx ", b2, ((uint8_t *)buffer)[i]);
-	// }
-	// fs_log.messagef(LogLevel::DEBUG, "%s", b2);
 
 	return size;
 }
@@ -145,24 +128,24 @@ int TarFSFile::pread(void *buffer, size_t size, off_t off)
 TarFSNode *TarFS::build_tree()
 {
 	// Create the root node.
-	TarFSNode *root = new TarFSNode(NULL, "", *this);
+	TarFSNode *const root = new TarFSNode(NULL, "", *this);
 
 	// TO BE FILLED IN
 
-	size_t block_size = block_device().block_size();
-	size_t nr_blocks = block_device().block_count();
+	size_t const block_size = block_device().block_size();
+	size_t const nr_blocks = block_device().block_count();
 	fs_log.messagef(LogLevel::DEBUG, "There are %d blocks", nr_blocks);
 
 	// You must read the TAR file, and build a tree of TarFSNodes that represents each file present in the archive.
 	int start = 0;
 	posix_header head;
 	int zero_count = 0;
+	int file_blocks;
 	while (start < nr_blocks)
 	{
-		uint8_t *buff = new uint8_t[block_size];
 		fs_log.messagef(LogLevel::DEBUG, "Reading from %d", start);
-		block_device().read_blocks(buff, start, 1);
-		if (is_zero_block(buff))
+		block_device().read_blocks(&head, start, 1);
+		if (is_zero_block((uint8_t *)(&head)))
 		{
 			fs_log.message(LogLevel::DEBUG, "Zero Block found");
 			if (zero_count)
@@ -177,8 +160,7 @@ TarFSNode *TarFS::build_tree()
 		{
 			zero_count = 0;
 		}
-		memcpy(&head, buff, block_size);
-		int file_blocks = (octal2ui(head.size) % block_size) ? octal2ui(head.size) / block_size + 1 : octal2ui(head.size) / block_size;
+		file_blocks = (octal2ui(head.size) % block_size) ? octal2ui(head.size) / block_size + 1 : octal2ui(head.size) / block_size;
 		fs_log.messagef(LogLevel::DEBUG, "Adding File %s, size %d", head.name, octal2ui(head.size));
 		TarFSNode *last_node;
 		TarFSNode *current_node = root;
