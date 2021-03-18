@@ -94,17 +94,14 @@ namespace tarfs
  */
 int TarFSFile::pread(void *buffer, size_t size, off_t off)
 {
-	fs_log.messagef(LogLevel::DEBUG, "Reading %d Bytes from file of size %d at offset %d", size, this->size(), off);
 	//if the the read would spill over the end of the file, change the number of bytes being read to the reach the end of the file and no more
 	if (off + size > this->size())
 	{
 		size -= (off + size - this->size());
-		fs_log.messagef(LogLevel::DEBUG, "Overflow, now only reading %d bytes", size);
 	}
 	//if the offset is out of range or we aren't reading any data, return 0
 	if (off >= this->size() || size == 0)
 	{
-		fs_log.messagef(LogLevel::DEBUG, "Offset out of range or reading nothing");
 		return 0;
 	}
 
@@ -118,7 +115,6 @@ int TarFSFile::pread(void *buffer, size_t size, off_t off)
 	//this is the size of the buffer area + the part of the offset within the first block of interest (+1) divided by the block size rounded up
 	int const blocks_to_read = ((size + 1 + off % block_size) % block_size) ? (size + 1 + off % block_size) / block_size + 1 : (size + 1 + off % block_size) / block_size;
 
-	fs_log.messagef(LogLevel::DEBUG, "Reading %d blocks starting at %d + %d bytes", blocks_to_read, (_file_start_block + (off / block_size)), off % block_size);
 	//read the blocks of interest into a buffer able to hold it all
 	uint8_t *const block_buffer = new uint8_t[block_size * blocks_to_read];
 	_owner.block_device().read_blocks(block_buffer, _file_start_block + (off / block_size), blocks_to_read);
@@ -145,7 +141,6 @@ TarFSNode *TarFS::build_tree()
 	//get the block size and the number of blocks
 	size_t const block_size = block_device().block_size();
 	size_t const nr_blocks = block_device().block_count();
-	fs_log.messagef(LogLevel::DEBUG, "There are %d blocks", nr_blocks);
 
 	// You must read the TAR file, and build a tree of TarFSNodes that represents each file present in the archive.
 
@@ -157,14 +152,12 @@ TarFSNode *TarFS::build_tree()
 	//while we've not read all of the blocks
 	while (offset < nr_blocks)
 	{
-		fs_log.messagef(LogLevel::DEBUG, "Reading from %d", offset);
 		//get the block we're pointing at with the start offset, should be a header
 		//read it into a header structure
 		block_device().read_blocks(&head, offset, 1);
 		//if the header is all zero
 		if (is_zero_block((uint8_t *)(&head)))
 		{
-			fs_log.message(LogLevel::DEBUG, "Zero Block found");
 			//if we've just seen a zero block, stop, we're at the end of the archive
 			if (zero_count)
 			{
@@ -180,7 +173,6 @@ TarFSNode *TarFS::build_tree()
 
 		//get the number of blocks the file uses (always block aligned so it's simply the ceiled division of the size of the file by the block size)
 		file_blocks = (octal2ui(head.size) % block_size) ? octal2ui(head.size) / block_size + 1 : octal2ui(head.size) / block_size;
-		fs_log.messagef(LogLevel::DEBUG, "Adding File %s, size %d", head.name, octal2ui(head.size));
 		//set up last, current and next node pointers
 		TarFSNode *last_node;
 		//startcing our search at the root node
@@ -216,7 +208,6 @@ TarFSNode *TarFS::build_tree()
 			{
 				//if the next node is null then the node doesn't exist in the tree and needs to be created and added
 				next_node = new TarFSNode(current_node, component, *this);
-				fs_log.messagef(LogLevel::DEBUG, "Adding component %s to the tree at %s", next_node->name().c_str(), current_node->name().c_str());
 				current_node->add_child(component, next_node);
 			}
 			//move the next node into the current node and the current node node into the last node
@@ -230,7 +221,6 @@ TarFSNode *TarFS::build_tree()
 		//will have the correct properties
 		last_node->size(octal2ui(head.size));
 		last_node->set_block_offset(offset);
-		fs_log.messagef(LogLevel::DEBUG, "%s is %d bytes large and is at at block offset %d ", last_node->name().c_str(), last_node->size(), offset);
 		//move the offset to point to the header of the next file
 		offset += 1 + file_blocks;
 	}
@@ -278,11 +268,8 @@ TarFSFile::TarFSFile(TarFS &owner, unsigned int file_header_block)
 	// Allocate storage for the header.
 	_hdr = (struct posix_header *)new char[_owner.block_device().block_size()];
 
-	fs_log.messagef(LogLevel::DEBUG, "Reading from %d", _file_start_block);
 	// Read the header block into the header structure.
 	_owner.block_device().read_blocks(_hdr, _file_start_block, 1);
-
-	fs_log.messagef(LogLevel::DEBUG, "TarFSFile %s of with %d bytes created at block offset %d", _hdr->name, octal2ui(_hdr->size), _file_start_block);
 
 	// Increment the starting block for file data.
 	_file_start_block++;
@@ -315,12 +302,8 @@ int TarFSFile::read(void *buffer, size_t size)
 	// current position indicator, so just delegate actual processing to
 	// pread, and update internal state accordingly.
 
-	fs_log.messagef(LogLevel::DEBUG, "Trying to read");
-
 	// Perform the read from the current file position.
 	int rc = pread(buffer, size, _cur_pos);
-
-	fs_log.messagef(LogLevel::DEBUG, "Finished reading %d bytes", rc);
 
 	// Increment the current file position by the number of bytes that was read.
 	// The number of bytes actually read may be less than 'size', so it's important
@@ -341,7 +324,6 @@ int TarFSFile::read(void *buffer, size_t size)
  */
 void TarFSFile::seek(off_t offset, SeekType type)
 {
-	fs_log.messagef(LogLevel::DEBUG, "Seek");
 	// If this is an absolute seek, then set the current file position
 	// to the given offset (subject to the file size).  There should
 	// probably be a way to return an error if the offset was out of bounds.
