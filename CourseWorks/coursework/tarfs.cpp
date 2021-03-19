@@ -147,7 +147,7 @@ TarFSNode *TarFS::build_tree()
 	//starting at the first block
 	int offset = 0;
 	posix_header head;
-	int zero_count = 0;
+	bool zero_seen = false;
 	int file_blocks;
 	//while we've not read all of the blocks
 	while (offset < nr_blocks)
@@ -159,17 +159,17 @@ TarFSNode *TarFS::build_tree()
 		if (is_zero_block((uint8_t *)(&head)))
 		{
 			//if we've just seen a zero block, stop, we're at the end of the archive
-			if (zero_count)
+			if (zero_seen)
 			{
 				break;
 			}
 			//otherwise this is the first (consecutive) zero block we've encountered so mark it, move to the next block and skip the rest of the loop
-			zero_count += 1;
+			zero_seen += true;
 			offset += 1;
 			continue;
 		}
-		//if the header isn't all zero, set the zero_count variable to 0
-		zero_count = 0;
+		//if the header isn't all zero, set the zero_seen variable to false
+		zero_seen = false;
 
 		//get the number of blocks the file uses (always block aligned so it's simply the ceiled division of the size of the file by the block size)
 		file_blocks = (octal2ui(head.size) % block_size) ? octal2ui(head.size) / block_size + 1 : octal2ui(head.size) / block_size;
@@ -196,7 +196,7 @@ TarFSNode *TarFS::build_tree()
 			if (*path == '/')
 				path++;
 
-			//if the component just retrieved is empty the path has been traversed
+			//if the component just retrieved is empty the path has been fully traversed
 			if (strlen(component) == 0)
 			{
 				break;
@@ -218,10 +218,10 @@ TarFSNode *TarFS::build_tree()
 		//so add the properties of the file/directory to this node
 		//Note: This doesn't care about the order in which the files arrive in the archive, a file within a directory can come before the actual directory information
 		//the node for the directory will be created when adding the file but will have no properties and once the directory information has been read, its corresponding node
-		//will have the correct properties
+		//will be given the correct properties
 		last_node->size(octal2ui(head.size));
 		last_node->set_block_offset(offset);
-		//move the offset to point to the header of the next file
+		//move the offset to point to the header of the next file/directory
 		offset += 1 + file_blocks;
 	}
 	//by the end of this loop, the entire archive has been read (though not necessarily all of the blocks due to checking for the two consecutive zero blocks indicating the end of the archive)
