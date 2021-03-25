@@ -225,7 +225,7 @@ TarFSNode *TarFS::build_tree()
 		last_node->size(octal2ui(head.size));
 
 		//check if the node being added is not a directory, if so add the offset, if it is a directory I don't
-		//NOTE: I included a commented fix in opendir for being able to read files like directories (using /usr/ls)
+		//NOTE: I included a fix in opendir for being able to read files like directories (using /usr/ls)
 		if (head.typeflag != '5')
 		{
 			last_node->set_block_offset(offset);
@@ -382,10 +382,10 @@ File *TarFSNode::open()
 Directory *TarFSNode::opendir()
 {
 	//I ADDED THIS CHECK TO FIX opendir, without this check you can call /usr/ls on files
-	// if (_has_block_offset)
-	// {
-	// 	return NULL;
-	// }
+	if (_has_block_offset)
+	{
+		return NULL;
+	}
 	return new TarFSDirectory(*this);
 }
 
