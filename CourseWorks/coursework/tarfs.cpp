@@ -216,11 +216,21 @@ TarFSNode *TarFS::build_tree()
 		} while (current_node);
 		//at the end of this loop, last_node will hold the lowest node in the path/name and therefore the node corresponding to the file/directory of interest
 		//so add the properties of the file/directory to this node
+
 		//Note: This doesn't care about the order in which the files arrive in the archive, a file within a directory can come before the actual directory information
 		//the node for the directory will be created when adding the file but will have no properties and once the directory information has been read, its corresponding node
 		//will be given the correct properties
+
+		//I assumed this system doesn't support size limiting but don't see any hard in filling in the size field of the node for a directory for if size limiting is to be implemented in the future
 		last_node->size(octal2ui(head.size));
-		last_node->set_block_offset(offset);
+
+		//check if the node being added is not a directory, if so add the offset, if it is a directory I don't
+		//NOTE: I included a commented fix in opendir for being able to read files like directories (using /usr/ls)
+		if (head.typeflag != '5')
+		{
+			last_node->set_block_offset(offset);
+		}
+
 		//move the offset to point to the header of the next file/directory
 		offset += 1 + file_blocks;
 	}
@@ -371,6 +381,11 @@ File *TarFSNode::open()
  */
 Directory *TarFSNode::opendir()
 {
+	//I ADDED THIS CHECK TO FIX opendir, without this check you can call /usr/ls on files
+	// if (_has_block_offset)
+	// {
+	// 	return NULL;
+	// }
 	return new TarFSDirectory(*this);
 }
 
